@@ -58,17 +58,6 @@ ManyCubes::ManyCubes( Renderer* parent )
 	TransformObj		= parent->RendererTransform();
 	modelType 			= CubeType;
 	size = 24 * sizeof(float);
-    unsigned short indexSize = sizeof( unsigned short ) * 36;
-    glGenBuffers(1, &vId);
-    glGenBuffers(1, &iId);
-    glBindBuffer(GL_ARRAY_BUFFER, vId);
-    glBufferData(GL_ARRAY_BUFFER, size + size, 0, GL_STATIC_DRAW);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, size, cubeVerts);
-    glBufferSubData(GL_ARRAY_BUFFER, size, size, cubeColors);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, iId);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexSize, 0, GL_STATIC_DRAW);
-    glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, indexSize, cubeIndices);
 }
 
 ManyCubes::~ManyCubes()
@@ -78,12 +67,20 @@ ManyCubes::~ManyCubes()
 	{
 		ProgramManagerObj->RemoveProgram(program);
 	}
-	glDeleteBuffers(1, &vId);
-	glDeleteBuffers(1, &iId);
+	glDeleteBuffers(1, &vbo);
+	glDeleteBuffers(1, &ebo);
 }
 
 void ManyCubes::RenderCube()
 {
+    //Culling();
+    glBindVertexArray(vao);
+    glUniformMatrix4fv( mvp, 1, GL_FALSE,(float*)TransformObj->TransformGetModelViewProjectionMatrix() );
+    glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_SHORT, (void*)0);
+    glBindVertexArray(0);
+}
+
+void ManyCubes::Culling() {
     glEnable(GL_CULL_FACE);
     if (toogle) {
         LOGI("FRONT Face");
@@ -99,19 +96,6 @@ void ManyCubes::RenderCube()
         glDepthFunc(GL_LESS);
         glCullFace(GL_BACK);
     }
-
-    glUniformMatrix4fv( mvp, 1, GL_FALSE,(float*)TransformObj->TransformGetModelViewProjectionMatrix() );
-    glBindBuffer(GL_ARRAY_BUFFER, vId);
-    glEnableVertexAttribArray(attribVertex);
-    glEnableVertexAttribArray(attribColor);
-    glVertexAttribPointer(attribVertex, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
-    glVertexAttribPointer(attribColor, 3, GL_FLOAT, GL_FALSE, 0, (void*)size);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, iId);
-    glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_SHORT, (void*)0);
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
 void ManyCubes::InitModel()
@@ -149,8 +133,34 @@ void ManyCubes::InitModel()
     int maxVertexAttribs = 0;
     glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &maxVertexAttribs);
     LOGI("maxVertexAttribs :  %d attribVertex : %d, attribColor : %d", maxVertexAttribs, attribVertex, attribColor );
+
+    InitBufferObject();
     return;
 }
+
+void ManyCubes::InitBufferObject() {
+    unsigned short indexSize = sizeof( unsigned short ) * 36;
+    glGenVertexArrays(1, &vao);
+    glGenBuffers(1, &vbo);
+    glGenBuffers(1, &ebo);
+    glBindVertexArray(vao);
+
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, size + size, NULL, GL_STATIC_DRAW);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, size, cubeVerts);
+    glBufferSubData(GL_ARRAY_BUFFER, size, size, cubeColors);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexSize, NULL, GL_STATIC_DRAW);
+    glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, indexSize, cubeIndices);
+
+    glEnableVertexAttribArray(attribVertex);
+    glEnableVertexAttribArray(attribColor);
+    glVertexAttribPointer(attribVertex, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
+    glVertexAttribPointer(attribColor, 3, GL_FLOAT, GL_FALSE, 0, (void*)size);
+    glBindVertexArray(0);
+}
+
 static float k = 0;
 
 /*!
