@@ -478,14 +478,12 @@ void Transform::TransformTranslate( float x, float y, float z )
 		case PROJECTION_MATRIX:
 		{
 			*TransformGetProjectionMatrix() = glm::translate( *TransformGetProjectionMatrix(), v);
-
 			break;
 		}
 
 		case TEXTURE_MATRIX:
 		{
 			*TransformGetTextureMatrix() = glm::translate( *TransformGetTextureMatrix(), v);
-
 			break;
 		}
 	}
@@ -688,7 +686,6 @@ void Transform::TransformOrthoGrahpic( float screen_ratio, float scale, float as
 void Transform::TransformSetPerspective( float fovy, float aspect_ratio, float clip_start, float clip_end, float screen_orientation )
 {
 	glm::mat4 mat;
-
 	switch( TransformMemData.matrix_mode )
 	{            
 		case MODEL_MATRIX:
