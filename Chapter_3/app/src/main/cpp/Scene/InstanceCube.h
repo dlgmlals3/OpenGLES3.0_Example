@@ -17,8 +17,7 @@ public:
     void Render();
     void RenderOrigin();
     void RenderRandomCube();
-
-    void RenderCube();
+    void RenderInstanceCube();
     void TouchEventDown( float x, float y );
     void CheckGLAPI(std::string str) {
         GLenum err = glGetError();

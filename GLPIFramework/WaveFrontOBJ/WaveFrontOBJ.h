@@ -2,6 +2,8 @@
 #define WAVEFRONTOBJ_H
 #include <vector>
 #include "GLutils.h"
+#include <android/asset_manager.h>
+#include <android/asset_manager_jni.h>
 #define MAX_FILE_NAME 1024
 
 class Vertex
@@ -102,9 +104,8 @@ public:
     int IndexTotal(){return  IndexCount;}
 
 private:
-	//! Parse’s the obj file
+	//! Parseï¿½s the obj file
     bool ParseFileInfo(char* path);
-    
 	//! Parse vertex index, vertex normal and vertex texuture
 	bool ScanVertexNormalAndUV( FILE* pFile, char c );
     

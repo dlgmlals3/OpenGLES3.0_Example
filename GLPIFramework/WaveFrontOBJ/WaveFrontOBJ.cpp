@@ -306,25 +306,24 @@ bool OBJMesh::ScanFaceIndex( FILE* pFile, char c )
     return true;
 }
 
-
 bool OBJMesh::ParseFileInfo(char* path)
 {
     FILE*  pFile;
     bool   eofReached = false;
     char   c;
-    
+
     pFile = fopen ( path,"r" );
     if( pFile==NULL )
     {
-        LOGI("\nFail to open Obj mesh file: %s", path);
+        LOGI("\n !! Fail to open Obj mesh file: %s", path);
         return false;
     }
-    
+
     strcpy(objMeshModel.fileName, path);
 
     while ((c = fgetc(pFile)) != EOF || !feof(pFile))
     {
-        // LOGI("character : %c", c);
+        LOGI("character : %c", c);
         switch(c)
         {
             case '#': // Comment. Ignore

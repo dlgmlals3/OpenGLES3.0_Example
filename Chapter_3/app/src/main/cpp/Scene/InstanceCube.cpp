@@ -107,7 +107,6 @@ void InstanceCube::InitModel()
 
     glUseProgram(program->ProgramID);  // 프로그램 활성화
 
-
     // ============================
     // 📌 3. VBO (Vertex Buffer Object) 생성 및 데이터 전송
     // ============================
@@ -119,22 +118,24 @@ void InstanceCube::InitModel()
     glBufferSubData(GL_ARRAY_BUFFER, size, size, cubeColors); // 색상 데이터 업로드
 
     // ============================
-    // 📌 4. 변환 행렬용 VBO 생성
-    // ============================
-    glGenBuffers(1, &matrixId);
-    glBindBuffer(GL_ARRAY_BUFFER, matrixId);
-
-    glm::mat4 transformMatrix[dimension][dimension][dimension]; // 3D 행렬 배열 생성
-    glBufferData(GL_ARRAY_BUFFER, sizeof(transformMatrix), 0, GL_DYNAMIC_DRAW); // 동적 할당
-
-    // ============================
-    // 📌 5. IBO (Index Buffer Object) 생성
+    // 📌 4. IBO (Index Buffer Object) 생성
     // ============================
     unsigned short indexSize = sizeof(unsigned short) * 36;
     glGenBuffers(1, &iId);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, iId);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexSize, 0, GL_STATIC_DRAW);
     glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, indexSize, cubeIndices); // 인덱스 데이터 업로드
+
+    // This Section
+    // ============================
+    // 📌 5. 변환 행렬용 VBO 생성 ( 3D 행렬 배열 )
+    // ============================
+    {
+        glGenBuffers(1, &matrixId);
+        glBindBuffer(GL_ARRAY_BUFFER, matrixId);
+        glm::mat4 tranformMatrix[dimension][dimension][dimension];
+        glBufferData(GL_ARRAY_BUFFER, sizeof(tranformMatrix), 0, GL_DYNAMIC_DRAW);
+    }
 
     // ============================
     // 📌 6. VAO (Vertex Array Object) 생성 및 설정
@@ -146,31 +147,31 @@ void InstanceCube::InitModel()
     glBindBuffer(GL_ARRAY_BUFFER, vId);
     glEnableVertexAttribArray(VERTEX_LOCATION);
     glEnableVertexAttribArray(COLOR_LOCATION);
-    glVertexAttribPointer(VERTEX_LOCATION, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
-    glVertexAttribPointer(COLOR_LOCATION, 3, GL_FLOAT, GL_FALSE, 0, (void*)size);
+    glVertexAttribPointer(VERTEX_LOCATION, 3, GL_FLOAT, GL_FALSE, 0, (void *) 0);
+    glVertexAttribPointer(COLOR_LOCATION, 3, GL_FLOAT, GL_FALSE, 0, (void *) size);
 
+    // This Section
     // 📌 6-2. 변환 행렬용 VBO 속성 설정
-    glBindBuffer(GL_ARRAY_BUFFER, matrixId);
-    glEnableVertexAttribArray(MATRIX1_LOCATION);
-    glEnableVertexAttribArray(MATRIX2_LOCATION);
-    glEnableVertexAttribArray(MATRIX3_LOCATION);
-    glEnableVertexAttribArray(MATRIX4_LOCATION);
-
-    // 한번에 mat4 타입을 전달할 수 없기에, float 4개씩 묶음,
+    // glVertexAttribPointer 호출할때 최대 vec4 ( float 4 개만 처리 가능 )
+    // mat4 경우 4번 걸쳐서 어트리뷰트 설정을 해준다.
     // 현재 바인딩 된 VBO특정 위치에서 데이터를 읽어와서 어트리뷰트로 사용하도록 지정.
-    glVertexAttribPointer(MATRIX1_LOCATION, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(sizeof(float) * 0)); // 1 행
-    glVertexAttribPointer(MATRIX2_LOCATION, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(sizeof(float) * 4)); // 2 행
-    glVertexAttribPointer(MATRIX3_LOCATION, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(sizeof(float) * 8));
-    glVertexAttribPointer(MATRIX4_LOCATION, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(sizeof(float) * 12));
-
     // 📌 6-3. 인스턴스별 변환 행렬 적용 (Divisor 설정)
-    // 0 : 각 정점 마다  vertex 어트리뷰트 데이터 사용
-    // 1 : 각 인스턴스 마다 vertex 어트리뷰트 데이터 사용
-    // n : n개의 인스턴스 마다 vertex 어트리뷰트 데이터 사용
-    glVertexAttribDivisor(MATRIX1_LOCATION, 1);
-    glVertexAttribDivisor(MATRIX2_LOCATION, 1);
-    glVertexAttribDivisor(MATRIX3_LOCATION, 1);
-    glVertexAttribDivisor(MATRIX4_LOCATION, 1);
+    {
+        glBindBuffer(GL_ARRAY_BUFFER, matrixId);
+        glEnableVertexAttribArray(MATRIX1_LOCATION);
+        glEnableVertexAttribArray(MATRIX2_LOCATION);
+        glEnableVertexAttribArray(MATRIX3_LOCATION);
+        glEnableVertexAttribArray(MATRIX4_LOCATION);
+        glVertexAttribPointer(MATRIX1_LOCATION, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(sizeof(float) * 0));
+        glVertexAttribPointer(MATRIX2_LOCATION, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(sizeof(float) * 4));
+        glVertexAttribPointer(MATRIX3_LOCATION, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(sizeof(float) * 8));
+        glVertexAttribPointer(MATRIX4_LOCATION, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(sizeof(float) * 12));
+
+        glVertexAttribDivisor(MATRIX1_LOCATION, 1);
+        glVertexAttribDivisor(MATRIX2_LOCATION, 1);
+        glVertexAttribDivisor(MATRIX3_LOCATION, 1);
+        glVertexAttribDivisor(MATRIX4_LOCATION, 1);
+    }
 
     // 📌 6-4. IBO 바인딩
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, iId);
@@ -178,7 +179,6 @@ void InstanceCube::InitModel()
     // 📌 6-5. VAO를 보호 (외부 코드가 변경하지 못하도록)
     glBindVertexArray(0);
 }
-
 
 /*!
 	Initialize the scene, reserve shaders, compile and cache program
@@ -193,8 +193,8 @@ void InstanceCube::Render()
 
     glUseProgram( program->ProgramID );
 
-    RenderOrigin();
-    //RenderCube();
+    //RenderOrigin();
+    RenderInstanceCube();
     //RenderRandomCube();
 }
 
@@ -224,6 +224,7 @@ void InstanceCube::RenderOrigin() {
                 glm::mat4 mvp = projectionMatrix * viewMatrix
                         * glm::translate(modelMatrix, glm::vec3( i * 5, j * 5, k * 5));
                 glUniformMatrix4fv(loc, 1, GL_FALSE, glm::value_ptr(mvp));
+
                 glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_SHORT, 0);
                 CheckGLAPI("1");
             }
@@ -237,7 +238,6 @@ void InstanceCube::RenderRandomCube() {
 
     TransformObj->TransformSetMatrixMode(VIEW_MATRIX);
     TransformObj->TransformTranslate(0, 0, -150);
-    glBindBuffer(GL_ARRAY_BUFFER, matrixId);
 
     TransformObj->TransformSetMatrixMode(MODEL_MATRIX);
     TransformObj->TransformRotate(l++, 0, 1, 0);
@@ -251,6 +251,7 @@ void InstanceCube::RenderRandomCube() {
     //count = 10;
     GLsizeiptr length = (long)sizeof(glm::mat4) * count;
 
+    glBindBuffer(GL_ARRAY_BUFFER, matrixId);
     auto matrixBuf = (glm::mat4*) glMapBufferRange(GL_ARRAY_BUFFER, 0,
                                                          length, GL_MAP_WRITE_BIT);
     int instance = 0;
@@ -263,8 +264,8 @@ void InstanceCube::RenderRandomCube() {
                                 * glm::translate(modelMatrix, glm::vec3(x, y, z));
     }
     glUnmapBuffer ( GL_ARRAY_BUFFER );
-    glBindVertexArray(Vertex_VAO_Id);
 
+    glBindVertexArray(Vertex_VAO_Id);
     GLint maxIndex;
     glGetIntegerv(GL_MAX_ELEMENTS_INDICES, &maxIndex);
     // GPU 한번 드로우 콜에서 사용할 수 있는 최대 인덱스 개수 1048576 --> glDrawElementsInstanced count 넘으면 안됌.
@@ -274,19 +275,14 @@ void InstanceCube::RenderRandomCube() {
                             (void*)0, dimension * dimension * dimension);
 }
 
-void InstanceCube::RenderCube()
+void InstanceCube::RenderInstanceCube()
 {
-    // camera seting
-    TransformObj->TransformSetMatrixMode(VIEW_MATRIX);
-    TransformObj->TransformTranslate(0, 0, -100);
-
-    glBindBuffer( GL_ARRAY_BUFFER, matrixId );
-    GLsizeiptr length = (long)sizeof(glm::mat4) * dimension * dimension * dimension;
-    glm::mat4* matrixBuf = (glm::mat4*)glMapBufferRange( GL_ARRAY_BUFFER, 0,
-                                                         length, GL_MAP_WRITE_BIT);
-
     static float l = 0;
     float dist = -distance * dimension / 2.0;
+
+    // camera seting
+    TransformObj->TransformSetMatrixMode(VIEW_MATRIX);
+    TransformObj->TransformTranslate(0, 0, -150);
 
     TransformObj->TransformSetMatrixMode(MODEL_MATRIX);
     TransformObj->TransformRotate(l++, 0, 1, 0);
@@ -295,23 +291,32 @@ void InstanceCube::RenderCube()
     glm::mat4 projectionMatrix  = *TransformObj->TransformGetProjectionMatrix();
     glm::mat4 modelMatrix       = *TransformObj->TransformGetModelMatrix();
     glm::mat4 viewMatrix        = *TransformObj->TransformGetViewMatrix();
-    int instance = 0;
 
-    for ( int i = 0; i < dimension; i++ )
+    // This Section
+    // 변환행렬 버퍼 바인딩 후 값을 전달하자.
+    // glSubData 사용하지 말고, glMapBufferRange 사용해서 전달하자.
+    // 인스턴스 렌더링한다.
     {
-        for ( int j = 0; j < dimension; j++ )
-        {
-            for ( int k = 0; k < dimension; k++ )
-            {
-                matrixBuf[instance++] = projectionMatrix * viewMatrix *
-                        glm::translate(modelMatrix, glm::vec3( i*distance , j*distance, k*distance));
+        glBindBuffer(GL_ARRAY_BUFFER, matrixId);
+
+        GLsizeiptr length = (long)sizeof(glm::mat4) * 1000;
+        glm::mat4* matrixBuf = (glm::mat4*)glMapBufferRange(GL_ARRAY_BUFFER, 0, length,
+                                                           GL_MAP_WRITE_BIT);
+
+        int index = 0;
+        for (int i=0; i<dimension; i++){
+            for (int j=0; j<dimension; j++){
+                for (int k=0; k<dimension; k++){
+                    matrixBuf[index++] = projectionMatrix * viewMatrix *
+                            glm::translate(modelMatrix, glm::vec3(i * distance , j * distance, k * distance));
+                }
             }
         }
-    }
-    glUnmapBuffer ( GL_ARRAY_BUFFER );
+        glUnmapBuffer(GL_ARRAY_BUFFER);
 
-    glBindVertexArray(Vertex_VAO_Id);
-    glDrawElementsInstanced(GL_TRIANGLES, 36, GL_UNSIGNED_SHORT, (void*)0, dimension * dimension * dimension);
+        glBindVertexArray(Vertex_VAO_Id);
+        glDrawElementsInstanced(GL_TRIANGLES, 36, GL_UNSIGNED_SHORT, (void*)0, 1000);
+    }
 }
 
 /*!

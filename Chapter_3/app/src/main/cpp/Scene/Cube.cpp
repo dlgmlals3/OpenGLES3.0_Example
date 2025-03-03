@@ -168,25 +168,27 @@ void Cube::InitModel()
 
 void Cube::CreateUniformBufferObject()
 {
-    // Get the index of the uniform block
-    GLuint blockIdx = glGetUniformBlockIndex(program->ProgramID, "Transformation");
+    // This Section
+    {
+        // get uniform block index
+        auto blockIdx = glGetUniformBlockIndex(program->ProgramID, "Transformation");
 
-    // Buffer space allocation
-    GLint blockSize;
-    glGetActiveUniformBlockiv(program->ProgramID, blockIdx, GL_UNIFORM_BLOCK_DATA_SIZE, &blockSize);
-    LOGI("shader block size : %d", blockSize);
+        // get uniform block size
+        GLint blockSize;
+        glGetActiveUniformBlockiv(program->ProgramID, blockIdx, GL_UNIFORM_BLOCK_DATA_SIZE, &blockSize);
 
-    //Bind the block index to BindPoint
-    bindingPoint = 3;
-    glUniformBlockBinding(program->ProgramID, blockIdx, bindingPoint);
+        // bind block index to Bindpoint
+        bindingPoint = 3;
+        glUniformBlockBinding(program->ProgramID, blockIdx, bindingPoint);
 
-    // Create Uniform Buffer Object(UBO) Handle
-    glGenBuffers(1, &UBO);
-    glBindBuffer(GL_UNIFORM_BUFFER, UBO);
-    glBufferData(GL_UNIFORM_BUFFER, blockSize, 0, GL_DYNAMIC_DRAW);
+        // create ubo
+        glGenBuffers(1, &UBO);
+        glBindBuffer(GL_UNIFORM_BUFFER, UBO);
+        glBufferData(GL_UNIFORM_BUFFER, blockSize, 0, GL_DYNAMIC_DRAW);
 
-    // Bind the UBO handle to BindPoint
-    glBindBufferBase(GL_UNIFORM_BUFFER, bindingPoint, UBO);
+        // bind ubo handle to bindPoint
+        glBindBufferBase(GL_UNIFORM_BUFFER, bindingPoint, UBO);
+    }
 }
 
 /*!
@@ -201,17 +203,22 @@ void Cube::Render()
     glUseProgram( program->ProgramID );
 	TransformObj->TransformTranslate(0.0,  0.0, -5.0);
     TransformObj->TransformRotate(degree++, 1, 1, 1);
-    //RenderCube();
-    RenderCubeWithMapBuffer();
+    // This Section
+    {
+        RenderCube();
+        //RenderCubeWithMapBuffer();
+    }
 }
 
 void Cube::RenderCubeWithMapBuffer() {
     // This Section
     {
-        glBindBuffer( GL_UNIFORM_BUFFER, UBO );
-        glm::mat4 *matrixBuf = (glm::mat4 *) glMapBufferRange(GL_UNIFORM_BUFFER, 0,
-                                                              sizeof(glm::mat4) * 3,
-                                                              GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+        glBindBuffer(GL_UNIFORM_BUFFER, UBO);
+        glBindBufferBase(GL_UNIFORM_BUFFER, bindingPoint, UBO);
+
+        glm::mat4 *matrixBuf = static_cast<glm::mat4 *>(glMapBufferRange(GL_UNIFORM_BUFFER, 0,
+                                                                         sizeof(glm::mat4) * 3,
+                                                                         GL_MAP_WRITE_BIT));
         matrixBuf[0] = *TransformObj->TransformGetModelMatrix();
         matrixBuf[1] = *TransformObj->TransformGetViewMatrix();
         matrixBuf[2] = *TransformObj->TransformGetProjectionMatrix();
@@ -235,16 +242,15 @@ void Cube::RenderCube()
 {
     // This Section
     {
-        glBindBuffer( GL_UNIFORM_BUFFER, UBO );
+        glBindBuffer(GL_UNIFORM_BUFFER, UBO);
         glBindBufferBase(GL_UNIFORM_BUFFER, bindingPoint, UBO);
+
         glm::mat4 matrices[3];
         matrices[0] = *TransformObj->TransformGetModelMatrix();
         matrices[1] = *TransformObj->TransformGetViewMatrix();
         matrices[2] = *TransformObj->TransformGetProjectionMatrix();
+
         glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(matrices), matrices);
-        /*LOGI("location : %s size :%d", glm::to_string(matrices[0]).c_str(), sizeof(matrices));
-        LOGI("view : %s", glm::to_string(matrices[1]).c_str());
-        LOGI("proj : %s", glm::to_string(matrices[2]).c_str());*/
     }
 
     glEnableVertexAttribArray(VERTEX_LOCATION);
@@ -255,6 +261,7 @@ void Cube::RenderCube()
     glVertexAttribPointer(COLOR_LOCATION, 3, GL_FLOAT, GL_FALSE, 0, (void*)size);
     glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, iId );
     glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_SHORT, (void*)0);
+
     glBindBuffer( GL_ARRAY_BUFFER, 0 );
     glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 );
     glBindBuffer( GL_UNIFORM_BUFFER, 0 );
