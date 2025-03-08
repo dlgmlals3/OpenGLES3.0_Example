@@ -83,6 +83,7 @@ void Renderer::setUpProjection()
 	TransformObj->TransformSetMatrixMode( VIEW_MATRIX );
 	TransformObj->TransformLoadIdentity();
 
+    TransformObj->TransformTranslate(0, 0, -5);
 	TransformObj->TransformSetMatrixMode( MODEL_MATRIX );
 	TransformObj->TransformLoadIdentity();
 }
