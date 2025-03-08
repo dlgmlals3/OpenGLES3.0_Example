@@ -6,6 +6,7 @@
 #include "Renderer.h"
 #include <string>
 #include "WaveFrontAssetOBJ.h"
+#include <queue>
 
 using namespace std;
 class ObjLoader : public Model

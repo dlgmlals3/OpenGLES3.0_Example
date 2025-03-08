@@ -10,19 +10,12 @@
 //#import <fstream>
 using namespace glm;
 
-//Note: The Linux is very case sensitive so be aware of specifying correct folder and filename.
-#ifdef __IPHONE_4_0
-#define VERTEX_SHADER_PRG			( char * )"VertexObj.glsl"
-#define FRAGMENT_SHADER_PRG			( char * )"FragmentObj.glsl"
-#else
 #define VERTEX_SHADER_PRG			( char * )"shader/VertexObj.glsl"
 #define FRAGMENT_SHADER_PRG			( char * )"shader/FragmentObj.glsl"
-#endif
 
 #define VERTEX_POSITION 0
 #define NORMAL_POSITION 1
 #define TEX_COORD 2
-
 
 // Namespace used
 using std::ifstream;
@@ -38,6 +31,17 @@ char ModelNames[][STRING_LENGTH]= {"Cube.obj","Cylinder.obj", "Torus.obj", "Monk
 	\return None
 
 */
+enum TaskType {
+    SWITCH_MESH
+};
+
+struct RenderTask {
+    TaskType type;
+};
+
+std::mutex taskQueueMutex;
+std::queue<RenderTask> renderTaskQueue;
+
 ObjLoader::ObjLoader( Renderer* parent )
 {
 	if (!parent)
@@ -77,7 +81,6 @@ void ObjLoader::SwitchMesh()
     
     // Load the new mesh model
     LoadMesh();
-
 }
 
 void ObjLoader::LoadMesh()
@@ -189,7 +192,6 @@ void ObjLoader::InitModel()
     }
 
     MVP     = ProgramManagerObj->ProgramGetUniformLocation( program, ( char* )"MODELVIEWPROJECTIONMATRIX" );
-
     return;
 }
 
@@ -202,6 +204,23 @@ void ObjLoader::InitModel()
 */
 void ObjLoader::Render()
 {
+    taskQueueMutex.lock();
+    while (!renderTaskQueue.empty()) {
+        RenderTask task = renderTaskQueue.front();
+        renderTaskQueue.pop();
+        taskQueueMutex.unlock();
+
+        switch (task.type) {
+            case SWITCH_MESH:
+                SwitchMesh();
+                break;
+            default:
+                break;
+        }
+        taskQueueMutex.lock();
+    }
+    taskQueueMutex.unlock();
+
     // Use Ambient program
     glUseProgram(program->ProgramID);
 
@@ -234,7 +253,8 @@ void ObjLoader::Render()
 void ObjLoader::TouchEventDown( float x, float y )
 {
     if (x > 900 && y > 2000) {
-        SwitchMesh();
+        std::lock_guard<std::mutex> lock(taskQueueMutex);
+        renderTaskQueue.push({ SWITCH_MESH });
     }
     else {
         RenderPrimitive++;
