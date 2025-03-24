@@ -11,6 +11,7 @@
 using namespace std;
 class ObjLoader : public Model
 {
+
 private:
     void TouchEventDown( float x, float y );
     void TouchEventDoubleClick( float x, float y );
@@ -48,23 +49,22 @@ private:
         }
         LOGE("NO Error 0x%x", error);
     }
-
     GLuint OBJ_VAO_Id;
     GLuint vertexBuffer;
     OBJMesh waveFrontObjectModel;
     Mesh* objMeshModel;
+
     GLvoid* offset;
     GLvoid* offsetTexCoord;
     int stride;
     char MVP;
+    int ModelNumber;
     char MV;
     GLint NormalMatrix;
-
     // Parse the wavefront OBJ mesh
     unsigned char RenderPrimitive;
     // Number of vertex Indices
-    int IndexCount;
-    int ModelNumber = 0;
+    int IndexCount;    
 };
 
 #endif // OBJLOADER_H
