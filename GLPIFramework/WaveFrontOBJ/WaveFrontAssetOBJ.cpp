@@ -87,12 +87,12 @@ bool OBJMesh::ScanVertexNormalAndUV(char *buffer)
             }
             break;
         case 'n':
-            if (sscanf(&buffer[1], "%f %f %f", &x, &y, &z) == 3) {
-                objMeshModel.normals.push_back(vec3(x, y, z));
+            if (sscanf(&buffer[2], "%f %f %f", &x, &y, &z) == 3) {
+               objMeshModel.normals.push_back(vec3(x, y, z));
             }
             break;
         case 't':
-            if (sscanf(&buffer[1], "%f %f", &u, &v) == 2) {
+            if (sscanf(&buffer[2], "%f %f", &u, &v) == 2) {
                 objMeshModel.uvs.push_back(vec2(u, v));
             }
             break;
@@ -119,10 +119,12 @@ bool OBJMesh::ScanFaceIndex(char *buffer)
         // 정점/UV/노멀이 모두 있는 경우 (v/vt/vn)
         if (strstr(token, "//")) // v//vn (UV 없음)
         {
+            // LOGI("ScanFaceIndex // token : %s", token);
             sscanf(token, "%d//%d", &vIndex, &nIndex);
         }
         else if (strchr(token, '/')) // v/vt 또는 v/vt/vn
         {
+            // LOGI("ScanFaceIndex / / / token : %s", token);
             int matchCount = sscanf(token, "%d/%d/%d", &vIndex, &uvIndex, &nIndex);
             if (matchCount == 2) // v/vt (노멀 없음)
             {
@@ -135,9 +137,23 @@ bool OBJMesh::ScanFaceIndex(char *buffer)
         }
 
         // 인덱스 저장 (OBJ 인덱스는 1부터 시작하므로 -1 처리)
-        vertexIndices.push_back(vIndex - 1);
-        uvIndices.push_back(uvIndex - 1);
-        normalIndices.push_back(nIndex - 1);
+        if (vIndex > 0) {
+            vertexIndices.push_back(vIndex - 1);
+        } else {
+            vertexIndices.push_back(-1);
+        }
+
+        if (uvIndex > 0) {
+            uvIndices.push_back(uvIndex - 1);
+        } else {
+            uvIndices.push_back(-1);
+        }
+
+        if (nIndex > 0) {
+            normalIndices.push_back(nIndex - 1);
+        } else {
+            normalIndices.push_back(-1);
+        }
 
         // 다음 토큰 가져오기
         token = strtok(nullptr, " ");
@@ -163,6 +179,8 @@ bool OBJMesh::ScanFaceIndex(char *buffer)
 bool OBJMesh::CalculateNormal(bool flatShading)
 {
     if (objMeshModel.normals.empty()) {
+        LOGI("CalCulate Normal %d", flatShading);
+
         objMeshModel.normals.resize(objMeshModel.positions.size(), vec3(0.0f, 0.0f, 0.0f));
 
         if (objMeshModel.vecFaceIndex.size() % 3 != 0) {
@@ -203,6 +221,7 @@ bool OBJMesh::CalculateNormal(bool flatShading)
                 return false;
             }
 
+            //LOGI("dlgmlals3 : %f %f %f", faceNormal.x, faceNormal.y, faceNormal.z);
             if (flatShading) {
                 // Flat shading: 각 정점에 같은 법선 벡터 적용 (면 단위로 고정된 법선 사용)
                 objMeshModel.normals[idx0] = faceNormal;
@@ -213,7 +232,6 @@ bool OBJMesh::CalculateNormal(bool flatShading)
                 objMeshModel.normals[idx0] += faceNormal;
                 objMeshModel.normals[idx1] += faceNormal;
                 objMeshModel.normals[idx2] += faceNormal;
-
             }
         }
 
@@ -235,17 +253,23 @@ void OBJMesh::CreateInterleavedArray()
 
     // Get the total number of indices.
     IndexCount = (int)objMeshModel.indices.size();
-
     for (size_t i = 0; i < objMeshModel.vecFaceIndex.size(); i++) {
         int index = objMeshModel.vecFaceIndex[i].vertexIndex;
         objMeshModel.vertices[i].position = objMeshModel.positions[index];
         objMeshModel.indices[i] = static_cast<unsigned short>(index);
 
         if (!objMeshModel.uvs.empty()) {
-            objMeshModel.vertices[i].uv = objMeshModel.uvs[objMeshModel.vecFaceIndex[i].uvIndex];
+            if (objMeshModel.vecFaceIndex[i].uvIndex >= 0) {
+                objMeshModel.vertices[i].uv = objMeshModel.uvs[objMeshModel.vecFaceIndex[i].uvIndex];
+            }
         }
+
         if (!objMeshModel.normals.empty()) {
-            objMeshModel.vertices[i].normal = objMeshModel.normals[objMeshModel.vecFaceIndex[i].normalIndex];
+            int normalIndex = objMeshModel.vecFaceIndex[i].normalIndex;
+            if (normalIndex < 0) {
+                normalIndex = index;
+            }
+            objMeshModel.vertices[i].normal = objMeshModel.normals[normalIndex];
         }
     }
 }
@@ -263,8 +287,7 @@ bool OBJMesh::ClearMesh()
 
 bool OBJMesh::CalculateTangents()
 {
-    // LOGI("objMeshModel.uvs.size() %d", objMeshModel.uvs.size());
-
+    LOGI("CalculateTangents size : %d", objMeshModel.uvs.size());
     if (objMeshModel.uvs.size() == 0) return false;
 
     // Mathematics for 3D Game Programming and Computer Graphics, 3rd edition
@@ -353,14 +376,14 @@ bool OBJMesh::CalculateTangents()
     {
         objMeshModel.tangents[i] = vec4(glm::normalize( tan1Accum[i] ),1.0);
         // It is advise to store the BiTangents into an array also instead of calclating at fly time in vertex shader.
-        LOGI("\nT: %f, %f, %f", objMeshModel.tangents[i].x, objMeshModel.tangents[i].y, objMeshModel.tangents[i].z);
+        LOGI("tangent T: %f, %f, %f", objMeshModel.tangents[i].x, objMeshModel.tangents[i].y, objMeshModel.tangents[i].z);
     }
 
     for(int i = 0; i < objMeshModel.vecFaceIndex.size(); i++)
     {
         int index = objMeshModel.vecFaceIndex.at(i + 0).vertexIndex;
         objMeshModel.vertices[i].tangent = objMeshModel.tangents.at(index);
-        LOGI("\nP: %f, %f, %f", objMeshModel.vertices[i].tangent.x, objMeshModel.vertices[i].tangent.y, objMeshModel.vertices[i].tangent.z);
+        LOGI("tangent : P: %f, %f, %f", objMeshModel.vertices[i].tangent.x, objMeshModel.vertices[i].tangent.y, objMeshModel.vertices[i].tangent.z);
     }
 
     tan1Accum.clear();
@@ -374,29 +397,42 @@ Mesh* OBJMesh::ParseObjModel(AAssetManager* assetManager, const char* path, bool
     if (!ParseFileInfo(assetManager, path)) {
         return nullptr;
     }
-    CreateInterleavedArray();
     CalculateNormal(flatShading);
     CalculateTangents();
 
-    // PrintModelInfo();
+    //PrintParseData();
+    CreateInterleavedArray();
+    //PrintModelInfo();
+
     ClearMesh();
     return &objMeshModel;
 }
 
+void OBJMesh::PrintParseData() {
+    LOGI("normal count : %d", objMeshModel.normals.size());
+    for (vec3 &v : objMeshModel.normals) {
+        LOGI("normal : %f %f %f", v.x, v.y, v.z );
+    }
+    LOGI("vert count : %d", objMeshModel.vertices.size());
+    for (vec3 &v : objMeshModel.positions) {
+        LOGI("vertex.position : %f %f %f", v.x,v.y, v.z );
+    }
+    LOGI("face count : %d", objMeshModel.vecFaceIndex.size());
+    for (FaceIndex &f : objMeshModel.vecFaceIndex) {
+        LOGI("face index : %d %d %d", f.vertexIndex, f.uvIndex, f.normalIndex );
+    }
+}
+
 void OBJMesh::PrintModelInfo() {
-    LOGI("vertices size : %d", objMeshModel.vertices.size());
-    for (Vertex &v : objMeshModel.vertices) {
-        LOGI("vertex.position : %f %f %f", v.position.x,v.position.y, v.position.z );
-    }
-    /*
-    for (Vertex &v : objMeshModel.vertices) {
-        LOGI("uv : %f %f", v.uv.x, v.uv.y);
-    }
-    for (Vertex &v : objMeshModel.vertices) {
-        LOGI("normal : %f %f %f", v.normal.x, v.normal.y, v.normal.z);
-    }
-    for (Vertex &v : objMeshModel.vertices) {
-        LOGI("tan : %f %f %f", v.tangent.x, v.tangent.y, v.tangent.z);
-    }
-    */
+   for (int i=0; i<objMeshModel.vertices.size(); i++){
+        LOGI("vertex : %f %f %f", objMeshModel.vertices[i].position.x,
+         objMeshModel.vertices[i].position.y,
+         objMeshModel.vertices[i].position.z);
+        LOGI("normal : %f %f %f", objMeshModel.vertices[i].normal.x,
+             objMeshModel.vertices[i].normal.y,
+             objMeshModel.vertices[i].normal.z);
+        LOGI("tangent : %f %f %f", objMeshModel.vertices[i].tangent.x,
+            objMeshModel.vertices[i].tangent.y,
+            objMeshModel.vertices[i].tangent.z);
+   }
 }

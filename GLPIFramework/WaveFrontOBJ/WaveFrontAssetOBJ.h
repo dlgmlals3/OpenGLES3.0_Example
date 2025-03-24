@@ -57,7 +57,8 @@ public:
 
     Mesh* ParseObjModel(AAssetManager* assetManager, const char* path, bool flatShading = false);
     int IndexTotal() { return IndexCount; }
-
+    void PrintModelInfo();
+    void PrintParseData();
 
 private:
     bool ParseFileInfo(AAssetManager* assetManager, const char* path);
@@ -67,7 +68,6 @@ private:
     bool CalculateTangents();
     void CreateInterleavedArray();
     bool ClearMesh();
-    void PrintModelInfo();
 };
 
 #endif // WAVEFRONTOBJ_H
